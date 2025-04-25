@@ -1,0 +1,11 @@
+[versions]
+kotlin = "2.1.20"
+ktor = "3.1.2"
+
+[libraries]
+ktorServerCore = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktorServerCIO = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
+
+[plugins]
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlinxSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
