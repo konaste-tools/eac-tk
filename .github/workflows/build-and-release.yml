@@ -1,10 +1,10 @@
 name: build-and-release
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,6 +12,7 @@ permissions:
 jobs:
   build:
     name: Build Artifacts
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       id-token: write
       contents: read
@@ -19,7 +20,6 @@ jobs:
     environment: prod
     outputs:
       SHA_SHORT: ${{ steps.output_sha.outputs.sha_short }}
-      VERSION: ${{ steps.output_version.outputs.version }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: 19
+          java-version: 21
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
       - name: Cache konan
@@ -35,14 +35,14 @@ jobs:
         with:
           path: |
             ~/.konan/dependencies
-            ~/.konan/kotlin-native-prebuilt-windows-x86_64-1.9.20-RC2
-          key: ${{ runner.os }}-konan-x86_64-1.9.20-RC2
-          restore-keys: ${{ runner.os }}-konan-x86_64-1.9.20-RC2
+            ~/.konan/kotlin-native-prebuilt-windows-x86_64-2.1.20
+          key: ${{ runner.os }}-konan-x86_64-2.1.20
+          restore-keys: ${{ runner.os }}-konan-x86_64-2.1.20
       - name: Build with Gradle
         run: ./gradlew.bat build
       - run: echo "sha_short=$(git rev-parse --short HEAD)" >> $env:GITHUB_ENV
       - run: Rename-Item -Path .\build\bin\native\releaseExecutable\eac-tk.exe -NewName eac-tk-${{ env.sha_short }}.exe
-      - name: 'Upload Artifact'
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: eac-tk-${{ env.sha_short }}
@@ -50,8 +50,6 @@ jobs:
           retention-days: 1
       - id: output_sha
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $env:GITHUB_OUTPUT
-      - id: output_version
-        run: echo "version=$(awk -F '=' '/^version/ {gsub(/ /, "", $2); gsub(/"/, "", $2); print $2}' build.gradle.kts)" >> $env:GITHUB_OUTPUT
 
   release:
     name: Tag and Release
@@ -63,23 +61,33 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
+
       - name: Download built artifact
         uses: actions/download-artifact@v4
         with:
           name: eac-tk-${{ needs.build.outputs.SHA_SHORT }}
           path: ./release-artifacts
+
+      - name: Read version
+        id: get_version
+        run: |
+          VERSION=$(awk -F '=' '/^version/ {gsub(/ /, "", $2); gsub(/"/, "", $2); print $2}' build.gradle.kts)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Create Git tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git fetch origin
-          git tag v${{ needs.build.outputs.VERSION }}
-          git push origin v${{ needs.build.outputs.VERSION }}
+          git tag v${{ steps.get_version.outputs.version }}
+          git push origin v${{ steps.get_version.outputs.version }}
+
       - run: mv ./release-artifacts/eac-tk-${{ needs.build.outputs.SHA_SHORT }}.exe ./release-artifacts/eac-tk.exe
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.build.outputs.VERSION }}
+          tag_name: v${{ steps.get_version.outputs.version }}
           files: ./release-artifacts/eac-tk.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
