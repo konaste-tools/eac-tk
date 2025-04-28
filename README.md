@@ -32,7 +32,13 @@ An example video can be found [here](https://youtu.be/QgOEXaFhIgo).
 ### Remote Login from an Android device
 to be added
 
-### Troubleshooting
+---
+
+## Webhooks
+
+For details around alerting, view [webhooks](WEBHOOKS.md)
+
+## Troubleshooting
 For these steps, **primary device** refers to the computer running Sound Voltex / eac-tk and **other device** refers to any other device.
 
 > I am unable to connect to the server / I am receiving an error when I try to remotely login
