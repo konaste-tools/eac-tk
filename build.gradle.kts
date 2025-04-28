@@ -38,6 +38,15 @@ kotlin {
             implementation("org.apache.commons:commons-compress:1.25.0")
             implementation(libs.ktorServerCore)
             implementation(libs.ktorServerCIO)
+            implementation(libs.ktorClientCore)
+            implementation(libs.ktorClientContentNegotiation)
+            implementation(libs.ktorSerializationJson)
+            when {
+                hostOs == "Mac OS X" -> implementation(libs.ktorClientDarwin)
+                hostOs == "Linux" -> implementation(libs.ktorClientCurl)
+                hostOs.startsWith("Windows") -> implementation(libs.ktorClientWinhttp)
+                else -> throw GradleException("Host OS is not supported in Kotlin/Native.")
+            }
         }
     }
 }
